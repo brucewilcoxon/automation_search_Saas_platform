@@ -2,6 +2,7 @@
 Application configuration settings.
 """
 from pydantic_settings import BaseSettings
+from pydantic import Field, computed_field
 from typing import List, Optional
 
 
@@ -14,9 +15,20 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
     
-    # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    # CORS: store as string from env (comma-separated), expose as list via property
+    cors_origins_raw: str = Field(
+        default="http://localhost:5173,http://localhost:3000",
+        alias="CORS_ORIGINS",
+        description="Comma-separated list of allowed origins",
+    )
     FRONTEND_DOMAIN: Optional[str] = None  # Production frontend domain
+
+    @computed_field
+    @property
+    def CORS_ORIGINS(self) -> List[str]:
+        if self.FRONTEND_DOMAIN:
+            return [self.FRONTEND_DOMAIN]
+        return [x.strip() for x in self.cors_origins_raw.split(",") if x.strip()]
     
     # API
     API_V1_PREFIX: str = "/api"
@@ -48,7 +60,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
-# Set CORS origins based on environment
-if settings.FRONTEND_DOMAIN:
-    settings.CORS_ORIGINS = [settings.FRONTEND_DOMAIN]
