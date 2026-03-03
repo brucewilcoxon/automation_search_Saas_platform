@@ -11,19 +11,6 @@ fi
 
 set -e
 
-# Install only packages that are not already installed (skips if all present)
-apt_install_if_missing() {
-  local to_install=()
-  for pkg in "$@"; do
-    dpkg -s "$pkg" &>/dev/null || to_install+=("$pkg")
-  done
-  if [ ${#to_install[@]} -gt 0 ]; then
-    apt-get install -y "${to_install[@]}"
-  else
-    echo ">>> All requested packages already installed: $*"
-  fi
-}
-
 # --- Config (override with environment variables) ---
 APP_DIR="${APP_DIR:-/var/www/propertyradarusa}"
 DOMAIN="${DOMAIN:-propertyradarusa.com}"
@@ -47,59 +34,48 @@ echo "Database user '${DB_USER}' password will be written to .env (first 4 chars
 # --- System packages ---
 echo ">>> Updating system and installing packages..."
 apt-get update -y
-apt_install_if_missing software-properties-common curl build-essential git
+apt-get install -y software-properties-common curl build-essential git
 
 # Python 3.9+ (prefer 3.11, then 3.10, then 3.9; fallback to system 3.8)
+add-apt-repository -y ppa:deadsnakes/ppa
+apt-get update -y
 PYTHON_BIN=""
 for ver in 3.11 3.10 3.9; do
+  apt-get install -y python${ver} python${ver}-venv python${ver}-dev 2>/dev/null || true
   if command -v python${ver} >/dev/null 2>&1; then
     PYTHON_BIN="python${ver}"
-    echo ">>> Using existing $PYTHON_BIN"
+    echo ">>> Using $PYTHON_BIN"
     break
   fi
 done
 if [ -z "$PYTHON_BIN" ]; then
-  add-apt-repository -y ppa:deadsnakes/ppa
-  apt-get update -y
-  for ver in 3.11 3.10 3.9; do
-    apt_install_if_missing python${ver} python${ver}-venv python${ver}-dev 2>/dev/null || true
-    if command -v python${ver} >/dev/null 2>&1; then
-      PYTHON_BIN="python${ver}"
-      echo ">>> Using $PYTHON_BIN"
-      break
-    fi
-  done
-fi
-if [ -z "$PYTHON_BIN" ]; then
-  apt_install_if_missing python3 python3-venv python3-dev
+  apt-get install -y python3 python3-venv python3-dev
   PYTHON_BIN="python3"
   echo ">>> Using system $PYTHON_BIN"
 fi
 command -v "$PYTHON_BIN" >/dev/null || { echo "No suitable Python found."; exit 1; }
 
-# Node.js 18+
-if command -v node &>/dev/null && [ "$(node -v | cut -d. -f1 | tr -d v)" -ge 18 ] 2>/dev/null; then
-  echo ">>> Node.js $(node -v) already installed"
-else
+# Node.js 18
+if ! command -v node &>/dev/null || [ "$(node -v | cut -d. -f1 | tr -d v)" -lt 18 ]; then
   curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-  apt_install_if_missing nodejs
+  apt-get install -y nodejs
 fi
 
 # MySQL 8
-apt_install_if_missing mysql-server
+apt-get install -y mysql-server
 systemctl start mysql || true
 systemctl enable mysql || true
 
 # Redis
-apt_install_if_missing redis-server
+apt-get install -y redis-server
 systemctl start redis-server || true
 systemctl enable redis-server || true
 
 # Nginx
-apt_install_if_missing nginx
+apt-get install -y nginx
 
 # WeasyPrint / PDF dependencies
-apt_install_if_missing libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info
+apt-get install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info
 
 # --- Database ---
 echo ">>> Creating database and user..."
@@ -143,7 +119,7 @@ REDIS_URL=redis://127.0.0.1:6379/0
 ENVIRONMENT=production
 DEBUG=false
 LOG_LEVEL=INFO
-CORS_ORIGINS=["https://${DOMAIN}","https://www.${DOMAIN}"]
+CORS_ORIGINS=https://${DOMAIN},https://www.${DOMAIN}
 ENVFILE
 
 # --- Migrations ---
@@ -248,7 +224,7 @@ systemctl restart propertyradarusa-api propertyradarusa-celery
 # --- SSL (optional) ---
 if [ "$RUN_CERTBOT" = "yes" ]; then
   echo ">>> Running Certbot for SSL..."
-  apt_install_if_missing certbot python3-certbot-nginx
+  apt-get install -y certbot python3-certbot-nginx
   certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" --non-interactive --agree-tos --register-unsafely-without-email || true
 fi
 

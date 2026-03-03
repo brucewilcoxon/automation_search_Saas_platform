@@ -19,11 +19,11 @@ def upgrade() -> None:
     # Create counties table
     op.create_table(
         'counties',
-        sa.Column('id', sa.String(), nullable=False),
-        sa.Column('name', sa.String(), nullable=False),
+        sa.Column('id', sa.String(length=255), nullable=False),
+        sa.Column('name', sa.String(length=255), nullable=False),
         sa.Column('state', sa.String(length=2), nullable=False),
-        sa.Column('state_full', sa.String(), nullable=True),
-        sa.Column('fips_code', sa.String(), nullable=True),
+        sa.Column('state_full', sa.String(length=255), nullable=True),
+        sa.Column('fips_code', sa.String(length=255), nullable=True),
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_counties_id'), 'counties', ['id'], unique=False)
@@ -33,10 +33,10 @@ def upgrade() -> None:
     # Create auction_sources table
     op.create_table(
         'auction_sources',
-        sa.Column('id', sa.String(), nullable=False),
-        sa.Column('name', sa.String(), nullable=False),
+        sa.Column('id', sa.String(length=255), nullable=False),
+        sa.Column('name', sa.String(length=255), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('source_url_template', sa.String(), nullable=True),
+        sa.Column('source_url_template', sa.String(length=255), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint('id'),
@@ -48,14 +48,14 @@ def upgrade() -> None:
     # Create auction_events table
     op.create_table(
         'auction_events',
-        sa.Column('id', sa.String(), nullable=False),
+        sa.Column('id', sa.String(length=255), nullable=False),
         sa.Column('state', sa.String(length=2), nullable=False),
-        sa.Column('county', sa.String(), nullable=False),
-        sa.Column('county_id', sa.String(), nullable=True),
+        sa.Column('county', sa.String(length=255), nullable=False),
+        sa.Column('county_id', sa.String(length=255), nullable=True),
         sa.Column('event_date', sa.Date(), nullable=False),
-        sa.Column('status', sa.String(), nullable=False, server_default='upcoming'),
-        sa.Column('source_id', sa.String(), nullable=True),
-        sa.Column('source_url', sa.String(), nullable=True),
+        sa.Column('status', sa.String(length=50), nullable=False, server_default='upcoming'),
+        sa.Column('source_id', sa.String(length=255), nullable=True),
+        sa.Column('source_url', sa.String(length=255), nullable=True),
         sa.Column('item_count', sa.Integer(), nullable=True, server_default='0'),
         sa.ForeignKeyConstraint(['county_id'], ['counties.id'], ),
         sa.ForeignKeyConstraint(['source_id'], ['auction_sources.id'], ),
@@ -70,13 +70,13 @@ def upgrade() -> None:
     # Create auction_items table
     op.create_table(
         'auction_items',
-        sa.Column('id', sa.String(), nullable=False),
-        sa.Column('event_id', sa.String(), nullable=False),
-        sa.Column('parcel_id_raw', sa.String(), nullable=True),
-        sa.Column('parcel_id_norm', sa.String(), nullable=True),
+        sa.Column('id', sa.String(length=255), nullable=False),
+        sa.Column('event_id', sa.String(length=255), nullable=False),
+        sa.Column('parcel_id_raw', sa.String(length=255), nullable=True),
+        sa.Column('parcel_id_norm', sa.String(length=255), nullable=True),
         sa.Column('opening_bid', sa.Numeric(precision=12, scale=2), nullable=True),
-        sa.Column('status', sa.String(), nullable=False, server_default='available'),
-        sa.Column('item_url', sa.String(), nullable=True),
+        sa.Column('status', sa.String(length=50), nullable=False, server_default='available'),
+        sa.Column('item_url', sa.String(length=255), nullable=True),
         sa.ForeignKeyConstraint(['event_id'], ['auction_events.id'], ),
         sa.PrimaryKeyConstraint('id')
     )
@@ -89,19 +89,19 @@ def upgrade() -> None:
     # Create parcels table
     op.create_table(
         'parcels',
-        sa.Column('id', sa.String(), nullable=False),
-        sa.Column('auction_id', sa.String(), nullable=True),
-        sa.Column('auction_item_id', sa.String(), nullable=True),
-        sa.Column('apn', sa.String(), nullable=True),
-        sa.Column('address', sa.String(), nullable=True),
-        sa.Column('county', sa.String(), nullable=True),
-        sa.Column('county_id', sa.String(), nullable=True),
+        sa.Column('id', sa.String(length=255), nullable=False),
+        sa.Column('auction_id', sa.String(length=255), nullable=True),
+        sa.Column('auction_item_id', sa.String(length=255), nullable=True),
+        sa.Column('apn', sa.String(length=255), nullable=True),
+        sa.Column('address', sa.String(length=255), nullable=True),
+        sa.Column('county', sa.String(length=255), nullable=True),
+        sa.Column('county_id', sa.String(length=255), nullable=True),
         sa.Column('state', sa.String(length=2), nullable=True),
         sa.Column('acreage', sa.Numeric(precision=10, scale=4), nullable=True),
         sa.Column('market_value', sa.Numeric(precision=12, scale=2), nullable=True),
         sa.Column('min_bid', sa.Numeric(precision=12, scale=2), nullable=True),
-        sa.Column('zoning', sa.String(), nullable=True),
-        sa.Column('status', sa.String(), nullable=False, server_default='available'),
+        sa.Column('zoning', sa.String(length=255), nullable=True),
+        sa.Column('status', sa.String(length=50), nullable=False, server_default='available'),
         sa.Column('latitude', sa.Numeric(precision=10, scale=7), nullable=True),
         sa.Column('longitude', sa.Numeric(precision=10, scale=7), nullable=True),
         sa.ForeignKeyConstraint(['auction_item_id'], ['auction_items.id'], ),
@@ -118,10 +118,10 @@ def upgrade() -> None:
     # Create ingest_runs table
     op.create_table(
         'ingest_runs',
-        sa.Column('id', sa.String(), nullable=False),
-        sa.Column('source', sa.String(), nullable=False),
-        sa.Column('source_id', sa.String(), nullable=True),
-        sa.Column('status', sa.String(), nullable=False, server_default='running'),
+        sa.Column('id', sa.String(length=255), nullable=False),
+        sa.Column('source', sa.String(length=255), nullable=False),
+        sa.Column('source_id', sa.String(length=255), nullable=True),
+        sa.Column('status', sa.String(length=50), nullable=False, server_default='running'),
         sa.Column('started_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=False),
         sa.Column('completed_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('parcels_processed', sa.Integer(), nullable=False, server_default='0'),
