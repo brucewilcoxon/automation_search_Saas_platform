@@ -7,8 +7,15 @@ from alembic import context
 import os
 import sys
 
-# Add parent directory to path to import models
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+# Project root: backend/db/migrations/env.py -> 4 levels up
+_project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, _project_root)
+
+# Load .env from project root so DATABASE_URL is set regardless of cwd (e.g. when run via sudo -u www-data)
+_dotenv_path = os.path.join(_project_root, ".env")
+if os.path.isfile(_dotenv_path):
+    from dotenv import load_dotenv
+    load_dotenv(_dotenv_path)
 
 from backend.app.core.database import Base
 from backend.app.core.config import settings
@@ -24,6 +31,10 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Set the SQLAlchemy URL from settings
+if not (settings.DATABASE_URL or "").strip():
+    raise ValueError(
+        "DATABASE_URL is empty. Ensure .env exists in the project root with DATABASE_URL=mysql+pymysql://..."
+    )
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 # add your model's MetaData object here
