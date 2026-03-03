@@ -2,7 +2,8 @@
 Application configuration settings.
 """
 from pydantic_settings import BaseSettings
-from typing import List, Optional
+from pydantic import field_validator
+from typing import List, Optional, Union
 
 
 class Settings(BaseSettings):
@@ -14,7 +15,7 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
     
-    # CORS
+    # CORS (accepts JSON array or comma-separated string in .env)
     CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
     FRONTEND_DOMAIN: Optional[str] = None  # Production frontend domain
     
@@ -42,6 +43,15 @@ class Settings(BaseSettings):
     EMAIL_PROVIDER: str = "stub"  # stub, sendgrid, mailgun
     EMAIL_FROM_ADDRESS: str = "noreply@auctionnavigator.com"
     
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            return [x.strip() for x in v.split(",") if x.strip()]
+        return []
+
     class Config:
         env_file = ".env"
         case_sensitive = True
